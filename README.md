@@ -28,20 +28,20 @@ LuchtLeven is a comprehensive web platform designed to improve the lives of CF p
 ### AI & Analytics
 - **Health Analysis**: OpenAI GPT-4
 - **Chatbot**: OpenAI GPT-4 + LangChain
-- **Analytics**: Vercel Analytics
-- **Monitoring**: Sentry
+- **Analytics**: PostHog
+- **Error Tracking**: Sentry
 
-### DevOps
+### DevOps & Infrastructure
 - **Hosting**: Vercel
 - **CI/CD**: GitHub Actions
+- **Monitoring**: Vercel Analytics
 - **Testing**: Jest + React Testing Library
-- **Linting**: ESLint + Prettier
-- **Type Checking**: TypeScript
+- **E2E Testing**: Playwright
 
 ## Project Structure
 ```
 luchtleven/
-├── app/                    # Next.js 14 App Router
+├── app/                    # Next.js app directory
 │   ├── (auth)/            # Authentication routes
 │   ├── (dashboard)/       # Protected dashboard routes
 │   ├── (marketing)/       # Public marketing pages
@@ -52,174 +52,160 @@ luchtleven/
 │   ├── charts/           # Chart components
 │   └── features/         # Feature-specific components
 ├── lib/                   # Utility functions
+│   ├── api/              # API utilities
+│   ├── auth/             # Auth utilities
+│   ├── db/               # Database utilities
+│   └── utils/            # General utilities
 ├── hooks/                # Custom React hooks
 ├── styles/               # Global styles
 ├── types/                # TypeScript types
 ├── prisma/               # Database schema
-├── public/               # Static assets
-└── config/               # Configuration files
+└── public/               # Static assets
 ```
 
 ## Database Schema
 
 ### Users
-```sql
-CREATE TABLE users (
-  id UUID PRIMARY KEY,
-  email TEXT UNIQUE,
-  role ENUM('patient', 'doctor', 'admin'),
-  name TEXT,
-  created_at TIMESTAMP,
-  updated_at TIMESTAMP
-);
+```prisma
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  role          UserRole  @default(PATIENT)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  profile       Profile?
+  healthData    HealthData[]
+  medications   Medication[]
+  appointments  Appointment[]
+  messages      Message[]
+}
 ```
 
-### Patient Profiles
-```sql
-CREATE TABLE patient_profiles (
-  id UUID PRIMARY KEY,
-  user_id UUID REFERENCES users(id),
-  date_of_birth DATE,
-  gender TEXT,
-  weight DECIMAL,
-  height DECIMAL,
-  conditions TEXT[],
-  medications TEXT[],
-  created_at TIMESTAMP,
-  updated_at TIMESTAMP
-);
+### Profiles
+```prisma
+model Profile {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id])
+  dateOfBirth   DateTime?
+  gender        Gender?
+  height        Float?
+  weight        Float?
+  conditions    String[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
 ```
 
-### Health Records
-```sql
-CREATE TABLE health_records (
-  id UUID PRIMARY KEY,
-  patient_id UUID REFERENCES patient_profiles(id),
-  fvc DECIMAL,
-  fev1 DECIMAL,
-  fev1_fvc_ratio DECIMAL,
-  date DATE,
-  notes TEXT,
-  created_at TIMESTAMP
-);
+### Health Data
+```prisma
+model HealthData {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  type          HealthDataType
+  value         Float
+  unit          String
+  recordedAt    DateTime
+  notes         String?
+  createdAt     DateTime  @default(now())
+}
 ```
 
 ### Medications
-```sql
-CREATE TABLE medications (
-  id UUID PRIMARY KEY,
-  patient_id UUID REFERENCES patient_profiles(id),
-  name TEXT,
-  dosage TEXT,
-  frequency TEXT,
-  start_date DATE,
-  end_date DATE,
-  reminder_time TIME,
-  created_at TIMESTAMP
-);
+```prisma
+model Medication {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  name          String
+  dosage        String
+  frequency     String
+  startDate     DateTime
+  endDate       DateTime?
+  reminders     Reminder[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
 ```
 
 ### Appointments
-```sql
-CREATE TABLE appointments (
-  id UUID PRIMARY KEY,
-  patient_id UUID REFERENCES patient_profiles(id),
-  doctor_id UUID REFERENCES users(id),
-  date TIMESTAMP,
-  type TEXT,
-  notes TEXT,
-  status TEXT,
-  created_at TIMESTAMP
-);
+```prisma
+model Appointment {
+  id            String    @id @default(cuid())
+  patientId     String
+  doctorId      String
+  patient       User      @relation("PatientAppointments", fields: [patientId], references: [id])
+  doctor        User      @relation("DoctorAppointments", fields: [doctorId], references: [id])
+  date          DateTime
+  type          AppointmentType
+  status        AppointmentStatus
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
 ```
 
 ### Messages
-```sql
-CREATE TABLE messages (
-  id UUID PRIMARY KEY,
-  sender_id UUID REFERENCES users(id),
-  receiver_id UUID REFERENCES users(id),
-  content TEXT,
-  read BOOLEAN,
-  created_at TIMESTAMP
-);
+```prisma
+model Message {
+  id            String    @id @default(cuid())
+  senderId      String
+  receiverId    String
+  sender        User      @relation("SentMessages", fields: [senderId], references: [id])
+  receiver      User      @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  content       String
+  read          Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+}
 ```
 
-## Pages & Routes
+## Site Structure
 
 ### Public Pages
 - Home (/)
 - About (/over-ons)
-- Contact (/contact)
 - Blog (/blog)
-- Login (/login)
-- Register (/registreren)
+- Contact (/contact)
+- Privacy Policy (/privacy)
+- Terms of Service (/voorwaarden)
 
 ### Patient Dashboard
 - Overview (/dashboard)
 - Health Profile (/dashboard/profiel)
-- Health Records (/dashboard/gezondheid)
-- Medications (/dashboard/medicijnen)
+- Health Data (/dashboard/gezondheid)
+- Medications (/dashboard/medicatie)
 - Exercises (/dashboard/oefeningen)
 - Nutrition (/dashboard/voeding)
 - Progress (/dashboard/vooruitgang)
 - Chat (/dashboard/chat)
 - Calendar (/dashboard/agenda)
-- Settings (/dashboard/instellingen)
 
 ### Doctor Dashboard
-- Overview (/doctor)
-- Patients (/doctor/patienten)
-- Patient Details (/doctor/patienten/[id])
-- Appointments (/doctor/afspraken)
-- Messages (/doctor/berichten)
-- Analytics (/doctor/analytics)
-- Settings (/doctor/instellingen)
+- Overview (/dashboard/arts)
+- Patients (/dashboard/arts/patienten)
+- Appointments (/dashboard/arts/afspraken)
+- Messages (/dashboard/arts/berichten)
+- Analytics (/dashboard/arts/analytics)
+- Settings (/dashboard/arts/instellingen)
 
 ## Design System
 
-### Colors
-- Primary: #2B6CB0 (Trust Blue)
-- Secondary: #48BB78 (Health Green)
+### Color Palette
+- Primary: #2B6CB0 (Trustworthy Blue)
+- Secondary: #48BB78 (Healthy Green)
 - Accent: #F6AD55 (Warm Orange)
 - Background: #F7FAFC (Light) / #1A202C (Dark)
 - Text: #2D3748 (Light) / #F7FAFC (Dark)
+- Success: #48BB78
+- Warning: #ECC94B
+- Error: #F56565
 
 ### Typography
-- Primary Font: Inter (Modern, Clean)
-- Secondary Font: Source Sans Pro (Readable, Friendly)
-- Scale: 12px, 14px, 16px, 18px, 20px, 24px, 30px, 36px
-
-### Components
-- Buttons (Primary, Secondary, Ghost)
-- Cards (Profile, Health, Progress)
-- Forms (Input, Select, Checkbox)
-- Navigation (Sidebar, Topbar)
-- Charts (Line, Bar, Progress)
-- Modals (Alert, Confirm, Form)
-
-## Features Implementation
-
-### Phase 1: Core Platform
-1. User Authentication
-2. Basic Profiles
-3. Health Records
-4. Medication Tracking
-5. Basic Dashboard
-
-### Phase 2: Advanced Features
-1. AI Health Analysis
-2. Exercise Programs
-3. Nutrition Tracking
-4. Doctor-Patient Chat
-5. Appointment System
-
-### Phase 3: Gamification & Integration
-1. Points System
-2. Progress Tracking
-3. Health App Integration
-4. Advanced Analytics
-5. AI Chatbot
+- Primary Font: Inter (Modern, clean, highly readable)
+- Secondary Font: Source Sans Pro (Friendly, approachable)
+- Scale: 12px, 14px, 16px, 18px, 20px, 24px, 30px, 36px, 48px
 
 ## Content Strategy
 
@@ -230,57 +216,70 @@ CREATE TABLE messages (
 - Educational and informative
 - Trustworthy and reliable
 
-### Content Types
-- Educational Articles
-- Health Tips
-- Success Stories
-- Research Updates
-- Exercise Guides
-- Nutrition Advice
+### Writing Principles
+1. Use clear, simple language
+2. Focus on benefits and outcomes
+3. Include social proof and testimonials
+4. Create emotional connection
+5. Provide actionable steps
+6. Use storytelling elements
+
+## Features Implementation
+
+### Phase 1: Core Platform
+- User authentication
+- Basic profiles
+- Health data tracking
+- Medication management
+- Basic dashboard
+
+### Phase 2: Advanced Features
+- AI health analysis
+- Exercise tracking
+- Nutrition planning
+- Doctor-patient chat
+- Appointment scheduling
+
+### Phase 3: Gamification & Integration
+- Points system
+- Progress tracking
+- Health app integration
+- Advanced analytics
+- AI chatbot
 
 ## Development Workflow
 
-1. **Setup**
-   - Initialize Next.js project
-   - Configure TypeScript
-   - Set up Tailwind CSS
-   - Configure ESLint & Prettier
-   - Set up Git hooks
-
-2. **Development**
-   - Feature branches
-   - Component-driven development
-   - Test-driven development
-   - Regular code reviews
-   - Daily standups
-
-3. **Deployment**
-   - Vercel preview deployments
-   - Staging environment
-   - Production deployment
-   - Monitoring setup
-   - Analytics integration
+1. Set up development environment
+2. Implement authentication
+3. Create core UI components
+4. Build database schema
+5. Develop API endpoints
+6. Implement features
+7. Add testing
+8. Deploy to staging
+9. User acceptance testing
+10. Production deployment
 
 ## Getting Started
 
 1. Clone the repository
 2. Install dependencies: `npm install`
 3. Set up environment variables
-4. Run development server: `npm run dev`
-5. Build for production: `npm run build`
+4. Run database migrations: `npx prisma migrate dev`
+5. Start development server: `npm run dev`
 
 ## Environment Variables
-```
+```env
 DATABASE_URL=
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
 NEXTAUTH_URL=
 NEXTAUTH_SECRET=
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
 OPENAI_API_KEY=
 ```
 
 ## Contributing
-Please read our contributing guidelines before submitting pull requests.
+Please read CONTRIBUTING.md for details on our code of conduct and the process for submitting pull requests.
 
 ## License
-Proprietary - All rights reserved 
+This project is licensed under the MIT License - see the LICENSE.md file for details. 

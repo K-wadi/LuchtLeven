@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Source_Sans_Pro } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "@/components/theme-provider";
+import { Providers } from "./providers";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const sourceSansPro = Source_Sans_Pro({
@@ -12,25 +12,19 @@ const sourceSansPro = Source_Sans_Pro({
 
 export const metadata: Metadata = {
   title: "LuchtLeven - Cystic Fibrosis Platform",
-  description: "Verbeter uw leven met CF door gezondheidstracking, AI-analyse en persoonlijke begeleiding.",
+  description: "Een platform voor CF-patiënten en hun artsen in Nederland",
+  keywords: ["CF", "Cystic Fibrosis", "gezondheid", "longziekte", "Nederlands"],
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="nl" suppressHydrationWarning>
       <body className={`${inter.variable} ${sourceSansPro.variable} font-sans antialiased`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-        </ThemeProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
