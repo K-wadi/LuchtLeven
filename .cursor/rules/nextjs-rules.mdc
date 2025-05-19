@@ -1,0 +1,77 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Next.js Development Rules
+
+## Component Structure
+1. Always mark components using React hooks with 'use client' directive
+2. Keep Server Components as the default
+3. Use Client Components only when necessary (interactivity, hooks, browser APIs)
+
+## File Organization
+1. Page components in /app directory
+2. Reusable components in /components
+3. Layout components in /components/layout
+4. API routes in /app/api
+
+## Performance Rules
+1. Use Server Components by default
+2. Implement proper loading states
+3. Use Suspense boundaries for async components
+4. Implement proper error boundaries
+
+## Data Fetching
+1. Use Server Components for data fetching when possible
+2. Implement proper loading states
+3. Use SWR or React Query for client-side data fetching
+4. Cache data appropriately
+
+## Routing
+1. Use Next.js file-based routing
+2. Implement proper 404 pages
+3. Use dynamic routes when needed
+4. Implement proper redirects
+
+## Security
+1. Never expose sensitive data in Client Components
+2. Use proper authentication middleware
+3. Implement proper CORS policies
+4. Use environment variables for sensitive data
+
+## Build Optimization
+1. Use proper image optimization
+2. Implement proper code splitting
+3. Use proper caching strategies
+4. Optimize bundle size
+
+## Error Handling
+1. Implement proper error boundaries
+2. Use proper error pages
+3. Log errors appropriately
+4. Handle API errors gracefully
+
+## Testing
+1. Test both Server and Client Components
+2. Use proper testing utilities
+3. Test API routes
+4. Test authentication flows
+
+## Deployment
+1. Use proper environment variables
+2. Implement proper CI/CD
+3. Use proper caching strategies
+4. Monitor performance
+
+## Dependency Management
+1. Always install required dependencies before using them
+2. Use specific versions in package.json
+3. Install type definitions for TypeScript packages
+4. Keep dependencies up to date
+5. Document external dependencies in component files
+6. Use peer dependencies when appropriate
+7. Check for security vulnerabilities regularly
+8. Use npm audit to identify potential issues
+9. Document why each dependency is needed
+10. Consider bundle size impact of new dependencies 
